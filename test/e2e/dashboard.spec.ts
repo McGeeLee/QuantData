@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { marketFixture, sourcesFixture } from "../fixtures";
+import { marketFixture as baseMarketFixture, sourcesFixture as baseSourcesFixture } from "../fixtures";
+
+const sourcesFixture = baseSourcesFixture.map((source) => source.id === "tiingo" ? { ...source, configured: true } : source);
+const marketFixture = { ...baseMarketFixture, meta: { ...baseMarketFixture.meta, source: "tiingo" as const, volumeUnit: "shares" as const } };
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/sources**", (route) => route.fulfill({ json: { sources: sourcesFixture } }));
@@ -8,11 +11,15 @@ test.beforeEach(async ({ page }) => {
 
 test("English and Chinese dashboard flow", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Public market data, shaped for people and models." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1, exact: true })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Data source", exact: true })).toHaveValue("tiingo");
+  const marketRequest = page.waitForRequest((request) => new URL(request.url()).pathname === "/api/v1/market-data");
   await page.getByRole("button", { name: "Fetch market data" }).click();
+  expect(new URL((await marketRequest).url()).searchParams.get("source")).toBe("tiingo");
   await expect(page.getByText("AAPL", { exact: true }).first()).toBeVisible();
+  await expect(page.locator(".source-badge")).toHaveText("tiingo");
   await page.getByRole("button", { name: "Switch language" }).click();
-  await expect(page.getByRole("heading", { name: "为用户与大模型而设计的公开行情数据。" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "行情面板", level: 1, exact: true })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
 });
 
@@ -56,15 +63,11 @@ test("desktop layouts share one 1180px content rail", async ({ page }, testInfo)
         const right = box.right - Number.parseFloat(styles.paddingRight);
         return { selector, left, right, width: right - left };
       };
-      const developer = document.querySelector<HTMLElement>(".developer-section")?.getBoundingClientRect();
-      if (!developer) throw new Error("Missing .developer-section");
-
       return {
         contentMax: getComputedStyle(document.documentElement).getPropertyValue("--content-max").trim(),
         viewportWidth: document.documentElement.clientWidth,
         pageWidth: document.documentElement.scrollWidth,
-        rails: [".topbar", ".hero", ".workspace", "footer"].map(contentRail),
-        developer: { left: developer.left, right: developer.right, width: developer.width },
+        rails: [".topbar", ".dashboard-heading", ".workspace", "footer"].map(contentRail),
       };
     });
 
@@ -75,8 +78,5 @@ test("desktop layouts share one 1180px content rail", async ({ page }, testInfo)
       expect(rail.right, rail.selector).toBeCloseTo(geometry.rails[0].right, 0);
       expect(rail.width, rail.selector).toBeCloseTo(1180, 0);
     }
-    expect(geometry.developer.left).toBeCloseTo(geometry.rails[0].left, 0);
-    expect(geometry.developer.right).toBeCloseTo(geometry.rails[0].right, 0);
-    expect(geometry.developer.width).toBeCloseTo(1180, 0);
   }
 });

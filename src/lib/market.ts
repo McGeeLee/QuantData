@@ -27,19 +27,20 @@ export function chartData(bars: MarketBar[]) {
     candles: bars.map(({ date, open, high, low, close }) => ({ time: date, open, high, low, close })),
     volume: bars.map(({ date, volume, close }, index) => ({
       time: date,
-      value: volume ?? 0,
+      ...(volume === null ? {} : { value: volume }),
       color: index === 0 || close >= bars[index - 1].close ? "rgba(229, 91, 57, 0.45)" : "rgba(35, 134, 116, 0.42)",
     })),
     closes: bars.map(({ date, close }) => ({ time: date, value: close })),
     returns: bars.slice(1).map((bar, index) => {
       const previous = bars[index];
-      const value = previous.close === 0 ? 0 : ((bar.close - previous.close) / previous.close) * 100;
+      if (previous.close === 0) return { time: bar.date };
+      const value = ((bar.close - previous.close) / previous.close) * 100;
       return { time: bar.date, value, color: value >= 0 ? "rgba(229, 91, 57, 0.7)" : "rgba(35, 134, 116, 0.7)" };
     }),
   };
 }
 
-export function formatNumber(value: number | null, maximumFractionDigits = 2): string {
+export function formatNumber(value: number | null, maximumFractionDigits = 2, locale?: string): string {
   if (value === null) return "—";
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(value);
+  return new Intl.NumberFormat(locale, { maximumFractionDigits }).format(value);
 }

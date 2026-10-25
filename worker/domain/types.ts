@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isIsoDate } from "../lib/dates";
 
 export const DataSourceSchema = z.enum(["yahoo", "tushare", "tiingo"]);
 export type DataSource = z.infer<typeof DataSourceSchema>;
@@ -7,13 +8,14 @@ export const LocaleSchema = z.enum(["en", "zh-CN"]);
 export type Locale = z.infer<typeof LocaleSchema>;
 
 export const MarketBarSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(isIsoDate, "Invalid calendar date"),
   open: z.number().finite(),
   high: z.number().finite(),
   low: z.number().finite(),
   close: z.number().finite(),
   volume: z.number().finite().nonnegative().nullable(),
-});
+}).refine((bar) => bar.high >= Math.max(bar.open, bar.low, bar.close)
+  && bar.low <= Math.min(bar.open, bar.close), "Inconsistent OHLC values");
 export type MarketBar = z.infer<typeof MarketBarSchema>;
 
 export const MarketDataMetaSchema = z.object({
@@ -24,6 +26,12 @@ export const MarketDataMetaSchema = z.object({
   volumeUnit: z.string(),
   count: z.number().int().nonnegative(),
   fetchedAt: z.string().datetime(),
+  latestBarDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  cache: z.object({
+    status: z.enum(["hit", "miss", "unavailable"]),
+    ttlSeconds: z.number().int().positive(),
+    ageSeconds: z.number().int().nonnegative(),
+  }),
   truncated: z.boolean(),
   attribution: z.string().optional(),
   warnings: z.array(z.string()),
@@ -85,6 +93,8 @@ export type ProviderContext = {
   tushareToken?: string;
   tiingoKey?: string;
   fetcher?: typeof fetch;
+  /** Diagnostics use one attempt; ordinary market reads retain one retry. */
+  maxAttempts?: 1 | 2;
 };
 
 export interface MarketProvider {

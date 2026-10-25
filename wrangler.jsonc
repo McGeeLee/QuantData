@@ -2,10 +2,13 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "quant-data",
   "main": "worker/index.ts",
-  "compatibility_date": "2026-08-10",
+  "compatibility_date": "2026-08-08",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": false,
+  "routes": [
+    { "pattern": "quantdata.mcgeelee.com", "custom_domain": true }
+  ],
   "assets": {
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
@@ -41,12 +44,25 @@
         "limit": 60,
         "period": 60
       }
+    },
+    {
+      "name": "SOURCE_CHECK_RATE_LIMIT",
+      "namespace_id": "1222215594",
+      "simple": {
+        "limit": 1,
+        "period": 60
+      }
     }
   ],
   "version_metadata": {
     "binding": "VERSION_METADATA"
   },
+  "durable_objects": {
+    "bindings": [{ "name": "PROVIDER_BUDGET", "class_name": "ProviderBudget" }]
+  },
+  "migrations": [{ "tag": "provider-budget-v1", "new_sqlite_classes": ["ProviderBudget"] }],
   "vars": {
-    "APP_VERSION": "3.1.0"
+    "APP_VERSION": "3.1.0",
+    "PUBLIC_ORIGIN": "https://quantdata.mcgeelee.com"
   }
 }

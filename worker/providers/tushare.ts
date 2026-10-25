@@ -10,7 +10,7 @@ const responseSchema = z.object({
   data: z.object({
     fields: z.array(z.string()),
     items: z.array(z.array(z.unknown())),
-  }).optional(),
+  }).nullable().optional(),
 });
 
 export const tushareProvider: MarketProvider = {
@@ -30,11 +30,14 @@ export const tushareProvider: MarketProvider = {
         },
         fields: "ts_code,trade_date,open,high,low,close,vol",
       }),
-    }, context.fetcher);
+    }, context.fetcher, undefined, context.maxAttempts);
     const parsed = responseSchema.safeParse(await readJson(response));
-    if (!parsed.success || parsed.data.code !== 0 || !parsed.data.data) {
-      throw new AppError("UPSTREAM_ERROR", 502, { reason: "provider_rejected_request" });
+    if (!parsed.success) throw new AppError("UPSTREAM_ERROR", 502, { reason: "invalid_payload" });
+    if (parsed.data.code !== 0) {
+      // Never include the upstream message: it can echo request credentials.
+      throw new AppError("UPSTREAM_ERROR", 502, { reason: "provider_rejected_request", providerCode: parsed.data.code });
     }
+    if (!parsed.data.data) throw new AppError("UPSTREAM_ERROR", 502, { reason: "invalid_payload" });
     const { fields, items } = parsed.data.data;
     const requiredFields = ["trade_date", "open", "high", "low", "close", "vol"];
     if (requiredFields.some((field) => !fields.includes(field))) {

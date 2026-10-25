@@ -9,7 +9,7 @@ import {
 import type { MarketBar } from "../../worker/domain/types";
 import { chartData } from "../lib/market";
 
-type Props = { bars: MarketBar[]; labels: { candles: string; close: string; returns: string } };
+type Props = { bars: MarketBar[]; labels: { candles: string; close: string; returns: string; bars: string } };
 
 function useResponsiveChart(container: HTMLDivElement | null, bars: MarketBar[], kind: "candles" | "close" | "returns", dark: boolean) {
   useEffect(() => {
@@ -56,13 +56,13 @@ function useResponsiveChart(container: HTMLDivElement | null, bars: MarketBar[],
   }, [container, bars, kind, dark]);
 }
 
-function Chart({ bars, label, kind, dark }: { bars: MarketBar[]; label: string; kind: "candles" | "close" | "returns"; dark: boolean }) {
+function Chart({ bars, label, barsLabel, kind, dark }: { bars: MarketBar[]; label: string; barsLabel: string; kind: "candles" | "close" | "returns"; dark: boolean }) {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   useResponsiveChart(container, bars, kind, dark);
   return (
     <section className={`chart-card ${kind === "candles" ? "chart-card--wide" : ""}`} aria-label={label}>
-      <div className="chart-title"><h3>{label}</h3><span>{bars.length}D</span></div>
-      <div ref={setContainer} className="chart" role="img" aria-label={`${label}, ${bars.length} daily observations`} />
+      <div className="chart-title"><h3>{label}</h3><span>{bars.length} {barsLabel}</span></div>
+      <div ref={setContainer} className="chart" role="img" aria-label={`${label}, ${bars.length} ${barsLabel}`} />
     </section>
   );
 }
@@ -78,9 +78,9 @@ export function MarketCharts({ bars, labels }: Props) {
 
   return (
     <div className="chart-grid">
-      <Chart bars={bars} label={labels.candles} kind="candles" dark={dark} />
-      <Chart bars={bars} label={labels.close} kind="close" dark={dark} />
-      <Chart bars={bars} label={labels.returns} kind="returns" dark={dark} />
+      <Chart bars={bars} label={labels.candles} kind="candles" dark={dark} barsLabel={labels.bars} />
+      <Chart bars={bars} label={labels.close} kind="close" dark={dark} barsLabel={labels.bars} />
+      <Chart bars={bars} label={labels.returns} kind="returns" dark={dark} barsLabel={labels.bars} />
     </div>
   );
 }

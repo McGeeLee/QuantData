@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22.0.0"
+    "node": "^22.18.0 || >=24.11.0"
   },
   "scripts": {
     "dev": "vite",
@@ -18,7 +18,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "check": "npm run lint && npm run typecheck && npm test && npm run cf-types:check && npm run build && npm run deploy:dry-run"
+    "test:runtime": "node test/runtime/empty-post.ts && node test/runtime/provider-budget.ts && node test/runtime/provider-transport.ts && node test/runtime/page-routes.ts",
+    "check": "npm run lint && npm run typecheck && npm test && npm run cf-types:check && npm run build && npm run deploy:dry-run && npm run test:runtime"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.5.2",

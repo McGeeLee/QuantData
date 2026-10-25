@@ -1,6 +1,6 @@
 import type { DataSource, MarketQuery } from "../domain/types";
 import { AppError } from "./app-error";
-import { defaultDateRange, validateDateRange } from "./dates";
+import { defaultDateRange, isIsoDate, validateDateRange } from "./dates";
 
 const symbolRules: Record<DataSource, { pattern: RegExp; expected: string }> = {
   yahoo: { pattern: /^[A-Z0-9.^=_-]{1,40}$/, expected: "AAPL, BTC-USD, ^GSPC, or 600519.SS" },
@@ -16,7 +16,8 @@ export type MarketQueryInput = {
 };
 
 export function normalizeMarketQuery(input: MarketQueryInput, now = new Date()): MarketQuery {
-  const defaults = defaultDateRange(now);
+  if (input.end !== undefined && !isIsoDate(input.end)) throw new AppError("INVALID_DATE_RANGE", 400);
+  const defaults = defaultDateRange(input.end ? new Date(`${input.end}T00:00:00Z`) : now);
   const symbol = input.symbol.trim().toUpperCase();
   const rule = symbolRules[input.source];
   if (!rule.pattern.test(symbol)) {

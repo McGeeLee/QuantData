@@ -2,7 +2,6 @@ import { AppError } from "./app-error";
 
 const RETRYABLE = new Set([502, 503, 504]);
 const DEFAULT_TIMEOUT_MS = 10_000;
-const MAX_RETRY_DELAY_MS = 2_000;
 const MAX_JSON_BYTES = 5 * 1024 * 1024;
 
 function retryDelay(response?: Response): { milliseconds: number; seconds: number } {
@@ -30,29 +29,32 @@ export async function fetchUpstream(
   init: RequestInit = {},
   fetcher: typeof fetch = fetch,
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  maxAttempts: 1 | 2 = 2,
 ): Promise<Response> {
   let lastError: unknown;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const canRetry = attempt + 1 < maxAttempts;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetcher(input, { ...init, signal: controller.signal });
       if (response.status === 429) {
         const retry = retryDelay(response);
-        if (attempt === 0 && retry.milliseconds <= MAX_RETRY_DELAY_MS) {
-          await delay(retry.milliseconds);
-          continue;
-        }
+        void response.body?.cancel().catch(() => undefined);
+        // A provider throttle must remain visible and must not spend another call.
         throw new AppError("UPSTREAM_RATE_LIMITED", 503, {
           upstreamStatus: 429,
           retryAfterSeconds: retry.seconds,
         });
       }
-      if (RETRYABLE.has(response.status) && attempt === 0) {
+      if (RETRYABLE.has(response.status) && canRetry) {
+        void response.body?.cancel().catch(() => undefined);
         await delay(250);
         continue;
       }
       if (!response.ok) {
+        void response.body?.cancel().catch(() => undefined);
+        if (response.status === 404) throw new AppError("NOT_FOUND", 404);
         throw new AppError("UPSTREAM_ERROR", 502, { upstreamStatus: response.status });
       }
       return response;
@@ -61,44 +63,58 @@ export async function fetchUpstream(
       lastError = error;
       const aborted = controller.signal.aborted || (error instanceof DOMException && error.name === "AbortError");
       if (aborted) {
-        if (attempt === 0) continue;
+        if (canRetry) continue;
         throw new AppError("UPSTREAM_TIMEOUT", 504, undefined, { cause: error });
       }
-      if (attempt === 0) continue;
+      if (canRetry) continue;
     } finally {
       clearTimeout(timer);
     }
   }
-  throw new AppError("UPSTREAM_ERROR", 502, undefined, { cause: lastError });
+  throw new AppError("UPSTREAM_ERROR", 502, { reason: "network_error" }, { cause: lastError });
 }
 
-export async function readJson(response: Response, maxBytes = MAX_JSON_BYTES): Promise<unknown> {
+export async function readJson(response: Response, maxBytes = MAX_JSON_BYTES, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<unknown> {
   const declaredLength = Number(response.headers.get("content-length"));
   if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    void response.body?.cancel().catch(() => undefined);
     throw new AppError("UPSTREAM_ERROR", 502, { reason: "payload_too_large" });
   }
   if (!response.body) throw new AppError("UPSTREAM_ERROR", 502, { reason: "empty_body" });
   const reader = response.body.getReader();
+  // A server can send headers promptly then stall forever while streaming JSON.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      reject(new AppError("UPSTREAM_TIMEOUT", 504));
+      void reader.cancel("upstream_timeout").catch(() => undefined);
+    }, timeoutMs);
+  });
   const decoder = new TextDecoder();
   let bytes = 0;
   let text = "";
   try {
     while (true) {
-      const result = await reader.read();
+      const result = await Promise.race([reader.read(), deadline]);
       if (result.done) break;
       bytes += result.value.byteLength;
       if (bytes > maxBytes) {
-        await reader.cancel("payload_too_large");
+        void reader.cancel("payload_too_large").catch(() => undefined);
         throw new AppError("UPSTREAM_ERROR", 502, { reason: "payload_too_large" });
       }
       text += decoder.decode(result.value, { stream: true });
     }
     text += decoder.decode();
-    return JSON.parse(text) as unknown;
   } catch (error) {
     if (error instanceof AppError) throw error;
-    throw new AppError("UPSTREAM_ERROR", 502, { reason: "invalid_json" }, { cause: error });
+    throw new AppError("UPSTREAM_ERROR", 502, { reason: "network_error" }, { cause: error });
   } finally {
+    clearTimeout(timer);
     reader.releaseLock();
+  }
+  try {
+    return JSON.parse(text) as unknown;
+  } catch (error) {
+    throw new AppError("UPSTREAM_ERROR", 502, { reason: "invalid_json" }, { cause: error });
   }
 }

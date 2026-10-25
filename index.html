@@ -6,7 +6,8 @@
     <meta name="theme-color" content="#fbf7ef" />
     <script>
       (() => {
-        const saved = localStorage.getItem("mcgeelee-theme");
+        let saved;
+        try { saved = localStorage.getItem("mcgeelee-theme"); } catch { /* Use the system theme when storage is unavailable. */ }
         const theme = saved === "light" || saved === "dark"
           ? saved
           : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";

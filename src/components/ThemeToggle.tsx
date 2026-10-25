@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { savePreference } from "../lib/i18n";
 
 type Theme = "light" | "dark";
 
@@ -36,7 +37,7 @@ export function ThemeToggle({ locale }: { locale: "en" | "zh-CN" }) {
       title={label}
       onClick={() => {
         setTheme(nextTheme);
-        localStorage.setItem(storageKey, nextTheme);
+        savePreference(storageKey, nextTheme);
       }}
     >
       <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>

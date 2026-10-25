@@ -1,4 +1,5 @@
 import type { MarketBar } from "../domain/types";
+import { isIsoDate } from "../lib/dates";
 
 export function numberOrNull(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -22,7 +23,8 @@ export function createBar(values: {
   const low = numberOrNull(values.low);
   const close = numberOrNull(values.close);
   const volume = numberOrNull(values.volume);
-  if (!values.date || open === null || high === null || low === null || close === null) return null;
+  if (!values.date || !isIsoDate(values.date) || open === null || high === null || low === null || close === null) return null;
+  if (high < Math.max(open, low, close) || low > Math.min(open, close)) return null;
   return {
     date: values.date,
     open,

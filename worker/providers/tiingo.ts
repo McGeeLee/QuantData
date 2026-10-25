@@ -30,7 +30,7 @@ export const tiingoProvider: MarketProvider = {
         accept: "application/json",
         authorization: `Token ${context.tiingoKey}`,
       },
-    }, context.fetcher);
+    }, context.fetcher, undefined, context.maxAttempts);
     const parsed = pricesSchema.safeParse(await readJson(response));
     if (!parsed.success) throw new AppError("UPSTREAM_ERROR", 502, { reason: "invalid_payload" });
     return sortedBars(parsed.data.map((row) => createBar({

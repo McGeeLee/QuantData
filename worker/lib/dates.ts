@@ -10,8 +10,16 @@ export function isoDate(date: Date): string {
 export function defaultDateRange(now = new Date()): { start: string; end: string } {
   const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const start = new Date(end.getTime());
-  start.setUTCFullYear(start.getUTCFullYear() - 1);
+  start.setUTCMonth(start.getUTCMonth() - 1);
+  // Clamp to the previous month's last day when its corresponding day is absent.
+  if (start.getUTCMonth() === end.getUTCMonth()) start.setUTCDate(0);
   return { start: isoDate(start), end: isoDate(end) };
+}
+
+export function isIsoDate(value: string): boolean {
+  if (!DATE_RE.test(value)) return false;
+  const milliseconds = Date.parse(`${value}T00:00:00Z`);
+  return Number.isFinite(milliseconds) && isoDate(new Date(milliseconds)) === value;
 }
 
 export function validateDateRange(start: string, end: string): void {
@@ -43,6 +51,8 @@ export function compactDate(date: string): string {
 }
 
 export function normalizeDate(value: string | number): string | null {
+  // Date parses some impossible ISO dates by rolling into the following month.
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value) && !isIsoDate(value.slice(0, 10))) return null;
   const date = typeof value === "number" ? new Date(value * 1000) : new Date(value);
   return Number.isNaN(date.getTime()) ? null : isoDate(date);
 }

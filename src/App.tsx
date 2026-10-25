@@ -1,75 +1,105 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import type { DataSource, MarketDataResponse, SourceStatus } from "../worker/domain/types";
+import { AboutPage } from "./components/AboutPage";
+import { SiteHeader } from "./components/SiteHeader";
+import { SiteFooter } from "./components/SiteFooter";
+import { ConnectionChecks } from "./components/ConnectionChecks";
 import { DocsPage } from "./components/DocsPage";
 import { MarketCharts } from "./components/MarketCharts";
-import { ThemeToggle } from "./components/ThemeToggle";
-import { fetchMarketData, fetchSources } from "./lib/api";
-import { detectLocale, translations, type UiLocale } from "./lib/i18n";
+import { ApiClientError, fetchMarketData, fetchSources } from "./lib/api";
+import { describeError, detectLocale, localizeWarning, savePreference, translations, type UiLocale } from "./lib/i18n";
 import { calculateSnapshot, formatNumber } from "./lib/market";
-
-function dateInput(yearOffset = 0): string {
-  const date = new Date();
-  date.setFullYear(date.getFullYear() + yearOffset);
-  return date.toISOString().slice(0, 10);
-}
-
-function CopyButton({ value, label, copiedLabel }: { value: string; label: string; copiedLabel: string }) {
-  const [copied, setCopied] = useState(false);
-  return <button type="button" className="copy-button" onClick={() => {
-    void navigator.clipboard.writeText(value).then(() => {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1_500);
-    });
-  }}>{copied ? copiedLabel : label}</button>;
-}
+import { defaultDateRange } from "../worker/lib/dates";
+import { normalizeMarketQuery } from "../worker/lib/query";
 
 export default function App() {
-  const docsLocale = window.location.pathname === "/docs/zh-CN"
+  const path = window.location.pathname.replace(/\/+$/, "") || "/";
+  const isAbout = path === "/about";
+  const isDocs = path.startsWith("/docs/");
+  const isDashboard = !isAbout && !isDocs;
+  const docsLocale = path === "/docs/zh-CN"
     ? "zh-CN"
-    : window.location.pathname === "/docs/en" ? "en" : undefined;
+    : path === "/docs/en" ? "en" : undefined;
   const [locale, setLocaleState] = useState<UiLocale>(() => docsLocale ?? detectLocale());
   const [sources, setSources] = useState<SourceStatus[]>([]);
-  const [source, setSource] = useState<DataSource>("yahoo");
+  const [source, setSource] = useState<DataSource>("tiingo");
   const [symbol, setSymbol] = useState("AAPL");
-  const [start, setStart] = useState(dateInput(-1));
-  const [end, setEnd] = useState(dateInput());
+  const [start, setStart] = useState(() => defaultDateRange().start);
+  const [end, setEnd] = useState(() => defaultDateRange().end);
   const [data, setData] = useState<MarketDataResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [sourcesError, setSourcesError] = useState<unknown>(null);
+  const [sourcesLoading, setSourcesLoading] = useState(true);
+  const [sourceAttempt, setSourceAttempt] = useState(0);
+  const [requested, setRequested] = useState(false);
+  const pending = useRef<AbortController | null>(null);
   const t = translations[locale];
 
   const setLocale = useCallback((next: UiLocale) => {
     setLocaleState(next);
-    localStorage.setItem("quant-data-locale", next);
+    savePreference("quant-data-locale", next);
     document.documentElement.lang = next;
   }, []);
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    void fetchSources(locale).then(setSources).catch((cause: unknown) => {
-      setError(cause instanceof Error ? cause.message : String(cause));
+    // An explicit documentation URL is also the language for the next page.
+    if (docsLocale) savePreference("quant-data-locale", docsLocale);
+    const skip = document.querySelector(".skip-link");
+    if (skip) skip.textContent = translations[locale].skip;
+    if (!isDashboard) return;
+    const controller = new AbortController();
+    void fetchSources(locale, controller.signal).then((items) => {
+      if (controller.signal.aborted) return;
+      setSources(items);
+      setSourcesError(null);
+    }).catch((cause: unknown) => {
+      if (!controller.signal.aborted) setSourcesError(cause);
+    }).finally(() => {
+      if (!controller.signal.aborted) setSourcesLoading(false);
     });
-  }, [locale]);
+    return () => controller.abort();
+  }, [docsLocale, isDashboard, locale, sourceAttempt]);
+
+  useEffect(() => () => pending.current?.abort(), []);
 
   const submit = useCallback(async (event?: FormEvent) => {
     event?.preventDefault();
-    setLoading(true);
+    // The ref closes the gap before React disables the submit button.
+    if (pending.current) return;
     setError(null);
+    setData(null);
+    setRequested(true);
+    let query;
     try {
-      setData(await fetchMarketData({ source, symbol, start, end, lang: locale }));
+      query = normalizeMarketQuery({ source, symbol, start, end });
+      if (sources.find((item) => item.id === source)?.configured === false) {
+        throw new ApiClientError("SOURCE_NOT_CONFIGURED");
+      }
     } catch (cause) {
-      setData(null);
-      setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setLoading(false);
+      setError(cause);
+      return;
     }
-  }, [end, locale, source, start, symbol]);
+    const controller = new AbortController();
+    pending.current = controller;
+    setLoading(true);
+    try {
+      const result = await fetchMarketData({ ...query, lang: locale }, controller.signal);
+      if (!controller.signal.aborted) setData(result);
+    } catch (cause) {
+      if (!controller.signal.aborted) setError(cause);
+    } finally {
+      if (!controller.signal.aborted) setLoading(false);
+      if (pending.current === controller) pending.current = null;
+    }
+  }, [end, locale, source, sources, start, symbol]);
 
   const selectedSource = sources.find((item) => item.id === source);
   const snapshot = useMemo(() => calculateSnapshot(data?.bars ?? []), [data]);
-  const apiExample = `curl 'https://quant-data.mcgeelee.workers.dev/api/v1/market-data?source=${source}&symbol=${encodeURIComponent(symbol)}&start=${start}&end=${end}&lang=${locale}'`;
+  if (isAbout) return <AboutPage locale={locale} onLocale={setLocale} />;
 
-  if (window.location.pathname.startsWith("/docs/")) {
+  if (isDocs) {
     return <DocsPage locale={locale} onLocale={(next) => {
       window.history.replaceState({}, "", `/docs/${next}`);
       setLocale(next);
@@ -77,71 +107,70 @@ export default function App() {
   }
 
   return (
-    <main id="main">
-      <nav className="topbar" aria-label="Primary">
-        <a className="brand" href="/"><span className="brand-mark">Q</span><span>Quant Data</span></a>
-        <div className="nav-links">
-          <a className="active" href="#dashboard">{t.dashboard}</a>
-          <a href={`/docs/${locale}`}>{t.documentation}</a>
-          <a href="/openapi.json">{t.apiContract}</a>
-          <a href={`/docs/${locale}#mcp`}>{t.mcp}</a>
-        </div>
-        <div className="nav-actions">
-          <ThemeToggle locale={locale} />
-          <button className="lang-switch" onClick={() => setLocale(locale === "en" ? "zh-CN" : "en")} aria-label="Switch language">{locale === "en" ? "中文" : "EN"}</button>
-        </div>
-      </nav>
-
-      <header className="hero">
-        <div className="hero-copy">
-          <span className="eyebrow">CLOUDFLARE EDGE · API + MCP</span>
-          <h1>{t.tagline}</h1>
-          <p>{t.subtitle}</p>
-          <div className="hero-pills"><span>{t.publicApi}</span><span>{t.cache}</span><span>{t.raw}</span></div>
-        </div>
-        <div className="hero-art" aria-hidden="true"><div className="orb orb-one"/><div className="orb orb-two"/><div className="signal-line">∿</div><span>1D</span></div>
+    <main id="main" className="dashboard-shell">
+      <SiteHeader locale={locale} onLocale={setLocale} active="dashboard" />
+      <header className="dashboard-heading">
+        <h1>{t.dashboard}</h1>
+        <p>{t.historical}</p>
       </header>
 
       <section id="dashboard" className="workspace">
         <aside className="control-panel">
-          <div className="panel-heading"><span className="step">01</span><div><h2>{t.dashboard}</h2><p>{t.intro}</p></div></div>
-          <form onSubmit={submit}>
+          <form aria-label={t.marketQuery} onSubmit={submit} noValidate>
+            <fieldset disabled={loading}>
             <label>{t.source}<select value={source} onChange={(event) => {
               const next = event.target.value as DataSource;
               setSource(next);
               const status = sources.find((item) => item.id === next);
               if (status?.symbolExamples[0]) setSymbol(status.symbolExamples[0]);
             }}><option value="yahoo">Yahoo Finance</option><option value="tushare">Tushare Pro</option><option value="tiingo">Tiingo</option></select></label>
-            <label>{t.symbol}<input value={symbol} onChange={(event) => setSymbol(event.target.value)} maxLength={40} autoCapitalize="characters" required /><small>{t.examples}: {selectedSource?.symbolExamples.join(" · ") ?? "AAPL · BTC-USD"}</small></label>
+            <label>{t.symbol}<input value={symbol} onChange={(event) => setSymbol(event.target.value)} maxLength={40} autoCapitalize="characters" required /><small>{t.examples}: {selectedSource?.symbolExamples.join(" · ") ?? "AAPL"}</small></label>
             <div className="date-row"><label>{t.start}<input type="date" value={start} max={end} onChange={(event) => setStart(event.target.value)} required /></label><label>{t.end}<input type="date" value={end} min={start} onChange={(event) => setEnd(event.target.value)} required /></label></div>
+            </fieldset>
             <button className="primary-button" type="submit" disabled={loading}>{loading ? t.loading : t.fetch}<span>↗</span></button>
           </form>
-          <div className="source-status"><h3>{t.sources}</h3>{sources.map((item) => <div className="source-row" key={item.id}><span className={`status-dot ${item.configured ? "ready" : "missing"}`} /><div><b>{item.name}</b><small>{item.configured ? t.configured : t.unavailable}{!item.official ? ` · ${t.unofficial}` : ""}</small></div></div>)}</div>
+          <div className="source-feedback">
+            {sourcesLoading && <p className="source-message" role="status">{t.sourcesLoading}</p>}
+            {sourcesError != null && <div className="source-message" role="status"><p>{t.sourcesFailed} {describeError(sourcesError, locale)}</p><button type="button" className="retry-button" disabled={sourcesLoading} onClick={() => { setSourcesLoading(true); setSourceAttempt((attempt) => attempt + 1); }}>{t.retry}</button></div>}
+          </div>
+          <details className="source-details">
+            <summary>{t.sourceDetails}</summary>
+            <div className="source-status">
+              <ConnectionChecks sources={sources} locale={locale} />
+              <p className="source-message">{t.sourceNote}</p>
+            </div>
+          </details>
         </aside>
 
         <div className="results" aria-live="polite" aria-busy={loading}>
-          {error && <div className="error-state" role="alert"><b>{t.requestFailed}</b><p>{error}</p></div>}
-          {!error && !data && <div className="empty-state">{loading ? t.loading : t.noData}</div>}
+          {error != null && <div className="error-state" role="alert"><b>{t.requestFailed}</b><p>{describeError(error, locale)}</p></div>}
+          {error == null && !snapshot && <div className="empty-state" role="status">{loading ? t.loading : requested ? t.noData : t.initial}</div>}
           {data && snapshot && <>
-            <div className="result-header"><div><span className="source-badge">{data.meta.source}</span><h2>{data.meta.symbol}</h2><p>{snapshot.date} · {data.meta.count} {t.bars}</p></div><div className="warning-chip">{data.meta.adjustment.toUpperCase()} · {data.meta.interval}</div></div>
-            <div className="metric-grid">
-              <article><span>{t.latestClose}</span><strong>{formatNumber(snapshot.close, 4)}</strong><small>{snapshot.date}</small></article>
-              <article><span>{t.change}</span><strong className={(snapshot.change ?? 0) >= 0 ? "positive" : "negative"}>{snapshot.change === null ? "—" : `${snapshot.change >= 0 ? "+" : ""}${formatNumber(snapshot.change, 4)}`}</strong><small>vs. previous close</small></article>
-              <article><span>{t.changePercent}</span><strong className={(snapshot.changePercent ?? 0) >= 0 ? "positive" : "negative"}>{snapshot.changePercent === null ? "—" : `${snapshot.changePercent >= 0 ? "+" : ""}${formatNumber(snapshot.changePercent)}%`}</strong><small>1D</small></article>
-              <article><span>{t.volume}</span><strong>{formatNumber(snapshot.volume, 0)}</strong><small>{data.meta.volumeUnit}</small></article>
+            <div className="result-header"><div><span className="source-badge">{data.meta.source}</span><h2>{data.meta.symbol}</h2><p>{snapshot.date} · {data.meta.count} {t.bars}</p></div><div className="warning-chip">{t.nativePrices} · {data.meta.interval}</div></div>
+            <div className="data-freshness">
+              <strong>{t.historical}</strong>
+              <dl>
+                <div><dt>{t.latestBar}</dt><dd>{data.meta.latestBarDate}</dd></div>
+                <div><dt>{t.fetchedAt}</dt><dd><time dateTime={data.meta.fetchedAt}>{data.meta.fetchedAt.replace("T", " ").replace(/\.\d+Z$/, " UTC")}</time></dd></div>
+                <div><dt>{data.meta.cache.status === "hit" ? t.cacheHit : data.meta.cache.status === "miss" ? t.cacheMiss : t.cacheUnavailable}</dt><dd>{t.cacheAge}: {data.meta.cache.ageSeconds} {t.seconds} · {t.cacheTtl}: {data.meta.cache.ttlSeconds} {t.seconds}</dd></div>
+              </dl>
+              <p>{t.freshnessNote}</p>
+              <p>{t.priceBasis}</p>
+              {data.meta.truncated && <p>{t.truncated}</p>}
             </div>
-            <MarketCharts bars={data.bars} labels={{ candles: t.candlestick, close: t.closeHistory, returns: t.dailyReturns }} />
-            <div className="data-notes">{data.meta.warnings.map((warning) => <p key={warning}>• {warning}</p>)}{data.meta.attribution && <p>• {data.meta.attribution}</p>}</div>
+            <div className="metric-grid">
+              <article><span>{t.latestClose}</span><strong>{formatNumber(snapshot.close, 4, locale)}</strong><small>{snapshot.date}</small></article>
+              <article><span>{t.change}</span><strong className={(snapshot.change ?? 0) >= 0 ? "positive" : "negative"}>{snapshot.change === null ? "—" : `${snapshot.change >= 0 ? "+" : ""}${formatNumber(snapshot.change, 4, locale)}`}</strong><small>{t.previousClose}</small></article>
+              <article><span>{t.changePercent}</span><strong className={(snapshot.changePercent ?? 0) >= 0 ? "positive" : "negative"}>{snapshot.changePercent === null ? "—" : `${snapshot.changePercent >= 0 ? "+" : ""}${formatNumber(snapshot.changePercent, 2, locale)}%`}</strong><small>1D</small></article>
+              <article><span>{t.volume}</span><strong>{formatNumber(snapshot.volume, 0, locale)}</strong><small>{data.meta.source === "tushare" ? t.lots : t.providerUnits}</small></article>
+            </div>
+            <MarketCharts bars={data.bars} labels={{ candles: t.candlestick, close: t.closeHistory, returns: t.dailyReturns, bars: t.bars }} />
+            <div className="data-notes">{data.meta.warnings.map((warning) => <p key={warning}>• {localizeWarning(warning, locale)}</p>)}{data.meta.attribution && <p>• {data.meta.attribution}</p>}</div>
           </>}
         </div>
       </section>
 
-      <section className="developer-section">
-        <div className="section-heading"><span className="step">02</span><div><h2>{t.examples}</h2><p>REST · OpenAPI 3.1 · Streamable HTTP MCP</p></div></div>
-        <div className="code-grid"><article><div><span>{t.apiExample}</span><CopyButton value={apiExample} label={t.copy} copiedLabel={t.copied} /></div><pre><code>{apiExample}</code></pre></article><article><div><span>{t.mcpExample}</span><CopyButton value="https://quant-data.mcgeelee.workers.dev/mcp" label={t.copy} copiedLabel={t.copied} /></div><pre><code>https://quant-data.mcgeelee.workers.dev/mcp</code></pre></article></div>
-      </section>
-
-      <footer><div className="brand"><span className="brand-mark">Q</span><span>Quant Data</span></div><p>{t.disclaimer}</p><div><a href="/llms.txt">llms.txt</a><a href="/llms-full.txt">llms-full.txt</a><a href="https://github.com/McGeeLee/Quant-Data">GitHub</a></div></footer>
+      <SiteFooter locale={locale} />
     </main>
   );
 }
