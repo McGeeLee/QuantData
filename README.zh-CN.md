@@ -145,7 +145,7 @@ npm run test:e2e
 
 准备好后按[操作者指南](./docs/DEPLOYMENT.zh-CN.md)确认账号、可选 Secret、生成类型、构建和目标域名，再执行 `npm run deploy`；该命令会先构建再部署。当前 `routes` 条目会在部署时将 `quantdata.mcgeelee.com` 绑定为自定义域名。重新部署到自己的账号时，请替换或删除该条目，并将 `PUBLIC_ORIGIN` 改为自己的地址；单独修改 `PUBLIC_ORIGIN` 不会绑定域名或修改 DNS。
 
-README 示例使用规范地址 `https://quantdata.mcgeelee.com`。`quantdata` Worker 的网页和 REST API 地址为 `https://quantdata.mcgeelee.workers.dev`；MCP 客户端请使用 `https://quantdata.mcgeelee.com/mcp`。新部署请替换为自己的地址。运行中的仪表盘、文档、OpenAPI 和 LLM 发现链接会使用当前站点地址，MCP 则允许配置的规范域名。只有已启用的 Workers Builds 关联才会在推送到指定分支时自动部署，不能仅凭仓库假定 `main` 已关联。
+README 示例使用规范地址 `https://quantdata.mcgeelee.com`。`quantdata` Worker 的网页和 REST API 地址为 `https://quantdata.mcgeelee.workers.dev`；MCP 客户端请使用 `https://quantdata.mcgeelee.com/mcp`。新部署请替换为自己的地址。运行中的仪表盘、文档、OpenAPI 和 LLM 发现链接会使用当前站点地址，MCP 则允许配置的规范域名。Workers Builds 已配置为监听 `McGeeLee/QuantData` 的 `main` 推送，根目录为 `/`，Node.js 为 24.19.0，预览构建关闭。先执行 `npm run check`，通过后才运行 `npx wrangler deploy`。仍需核对每次构建结果和已部署版本，详见[自动部署配置](./docs/DEPLOYMENT.zh-CN.md#workers-builds-自动部署)。
 
 ## 作品集演示
 

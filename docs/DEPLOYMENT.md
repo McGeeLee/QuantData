@@ -103,7 +103,25 @@ npm run deploy
 
 `npm run deploy` runs a fresh Vite build before `wrangler deploy`. The Vite plugin writes an output configuration that Wrangler discovers; avoid deploying a stale build after editing configuration. A successful dry run only validates packaging, not credentials, provider access, custom-domain routing, or production cache behavior.
 
-For a deliberately configured Workers Builds connection, use the intended repository/branch, root `/`, install `npm ci`, build `npm run build`, deploy `npx wrangler deploy`, and Node.js 24.19.0. Verify the actual trigger settings in Cloudflare: a push triggers deployment only when that integration is configured and enabled. The repository alone cannot prove an active build connection.
+## Automatic deployments with Workers Builds
+
+The existing `quantdata` Worker is connected to `McGeeLee/QuantData` with the following production configuration:
+
+| Setting | Configured value |
+| --- | --- |
+| Production branch | `main`; pushes trigger the production pipeline |
+| Root directory | `/` |
+| Build command | `npm run check` |
+| Deploy command | `npx wrangler deploy` |
+| Node.js | `NODE_VERSION=24.19.0`, matching `.nvmrc` |
+| Preview builds | Disabled |
+| Deployment credential | The existing Workers Builds deployment token is reused |
+
+Keep automatic dependency installation enabled and retain the committed `package-lock.json`; confirm `npm clean-install` (`npm ci`) in the build logs. The build command runs lint, type checks, unit/contract tests, generated Worker-type checks, the Vite production build, a deployment dry run, and local workerd runtime regressions. Any failed check stops the pipeline before deployment. On success, the deploy command uses the Vite output configuration for `quantdata`. This pipeline does not run Playwright browser tests or live supplier checks; those remain separate validation steps.
+
+Build variables and secrets are available to the build process, not automatically to the deployed Worker. The Builds deployment credential authorizes upload/deployment. `TUSHARE_TOKEN` and `TIINGO_KEY` are separate runtime secrets managed on the Worker under **Settings > Variables & Secrets** or through `wrangler secret put`; keep them out of build variables, source files, frontend `VITE_*` values, and logs. The local runtime checks use isolated configurations without supplier credentials.
+
+The connection and commands are configured; this does not establish a successful cloud build or production deployment. For each rollout, verify the build result, source commit, deployed Worker version, and the service checks below. See [Workers Builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/) and the [build image](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/) for platform settings.
 
 ## Check the deployed service
 

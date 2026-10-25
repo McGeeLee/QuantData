@@ -103,7 +103,25 @@ npm run deploy
 
 `npm run deploy` 会先重新 Vite 构建，再运行 `wrangler deploy`。Vite 插件生成 Wrangler 自动读取的输出配置，因此改配置后不要直接部署旧构建。dry run 成功仅说明包可生成，不证明账号、供应商、自定义域名或线上缓存已经正常。
 
-如果选择 Workers Builds 自动部署，主动设置目标仓库与分支、根目录 `/`、安装 `npm ci`、构建 `npm run build`、部署 `npx wrangler deploy`、Node.js 24.19.0。务必在 Cloudflare 确认实际触发器：只有关联并启用自动部署后，推送才会触发构建。仅凭仓库文件不能断言当前存在有效自动部署关联。
+## Workers Builds 自动部署
+
+既有 `quantdata` Worker 已关联 `McGeeLee/QuantData`，生产构建配置如下：
+
+| 配置项 | 已配置值 |
+| --- | --- |
+| 生产分支 | `main`；推送触发生产流水线 |
+| 根目录 | `/` |
+| 构建命令 | `npm run check` |
+| 部署命令 | `npx wrangler deploy` |
+| Node.js | `NODE_VERSION=24.19.0`，与 `.nvmrc` 一致 |
+| 预览构建 | 关闭 |
+| 部署凭据 | 复用已有 Workers Builds 部署令牌 |
+
+保持自动安装依赖开启并保留已提交的 `package-lock.json`，在构建日志中确认执行 `npm clean-install`（即 `npm ci`）。构建命令依次执行 lint、类型检查、单元/契约测试、Worker 生成类型检查、Vite 生产构建、部署 dry run 与本地 workerd 运行时回归。任意检查失败都会在部署前停止；全部通过后，部署命令使用 Vite 为 `quantdata` 生成的输出配置。这条流水线不运行 Playwright 浏览器测试或真实供应商检查，这两类验收需单独执行。
+
+构建变量和 Secret 供构建进程使用，不会自动成为已部署 Worker 的运行时变量。Builds 部署凭据用于授权上传与部署；`TUSHARE_TOKEN`、`TIINGO_KEY` 是单独管理的运行时 Secret，应在 Worker 的 **Settings > Variables & Secrets** 或通过 `wrangler secret put` 配置，不要放进构建变量、源码、前端 `VITE_*` 变量或日志。本地运行时检查使用隔离配置，不带供应商凭据。
+
+这里记录的是已完成的关联和命令配置，不代表云端构建或线上部署已成功。每次发布仍需核对构建结果、源码提交、已部署 Worker 版本及下方服务验收。平台设置参见 [Workers Builds 配置](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)与[构建镜像](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)。
 
 ## 部署后真实验收
 
