@@ -58,10 +58,10 @@ Tiingo 每次尝试预留 **6 MiB**。完整读取不超过 **5 MiB** 的 HTTP 2
 
 | 配置项 | 需要确认的内容 |
 | --- | --- |
-| `name` | `quant-data` 会更新所选 Cloudflare 账号下的同名 Worker；仅在确实需要独立 Worker 时改名。 |
+| `name` | `quantdata` 指向所选 Cloudflare 账号下已重命名的 Worker。已有 Worker 应先在 Cloudflare 中完成重命名；仅修改此值不会重命名已有 Worker。 |
 | `vars.PUBLIC_ORIGIN` | 当前为 `https://quantdata.mcgeelee.com`。重新部署时填写自己的准确公开地址，不带路径、查询参数或凭据。MCP 使用其主机名作为允许列表。 |
 | `routes` | 当前 `{ "pattern": "quantdata.mcgeelee.com", "custom_domain": true }` 条目会在部署时绑定该域名。请替换为自己已激活 Cloudflare zone 下的域名；若只使用默认 Workers 地址，则删除 `routes`。绑定前检查已有 DNS 和 Worker 占用。 |
-| `workers_dev` | 显式设为 `true`，让默认地址继续提供网页和 REST API，与自定义域名并存；MCP 客户端使用配置的规范域名。 |
+| `workers_dev` | 显式设为 `true`，让当前 Worker 的默认地址提供网页和 REST API，与自定义域名并存；MCP 客户端使用配置的规范域名。 |
 | `vars.APP_VERSION` | 与准备发布的服务版本保持一致。 |
 | `compatibility_date`、`nodejs_compat` | 保留 `2026-08-08`，这是锁定 workerd 支持的最新日期；原 `2026-08-10` 会阻碍本地启动。运行时与依赖升级应配套测试。 |
 | `ASSETS` | Vite 插件生成前端和 Worker；保留 SPA fallback 和 `run_worker_first` 中 API/MCP 路由。 |
@@ -72,7 +72,7 @@ Tiingo 每次尝试预留 **6 MiB**。完整读取不超过 **5 MiB** 的 HTTP 2
 | `VERSION_METADATA` | 向 `/healthz` 和 MCP 资源提供版本信息，并隔离不同 Worker 版本的诊断缓存；配置或密钥更新发布为新版本后旧诊断失效。 |
 | `TUSHARE_TOKEN`、`TIINGO_KEY` | 可选 Worker Secret；缺失会禁用对应源，存在并不证明权限或连通性。 |
 
-页面示例、REST 发现、OpenAPI 服务地址和 LLM 发现链接随当前访问地址生成。MCP 使用显式 `PUBLIC_ORIGIN` 配置，避免信任任意 Host 请求头；本地 localhost/loopback 与 MCP Inspector 浏览器来源仍可使用。此部署保留 `https://quant-data.mcgeelee.workers.dev` 的网页和 REST API 访问；MCP 客户端必须连接 `https://quantdata.mcgeelee.com/mcp`。重新部署时如果同时保留自定义域名与 workers.dev，也请让 MCP 客户端连接配置的规范域名。不要通过放开任意 Origin 来掩盖配置错误。
+页面示例、REST 发现、OpenAPI 服务地址和 LLM 发现链接随当前访问地址生成。MCP 使用显式 `PUBLIC_ORIGIN` 配置，避免信任任意 Host 请求头；本地 localhost/loopback 与 MCP Inspector 浏览器来源仍可使用。`quantdata` Worker 的网页和 REST API 地址为 `https://quantdata.mcgeelee.workers.dev`；MCP 客户端必须连接 `https://quantdata.mcgeelee.com/mcp`。重新部署时如果同时保留自定义域名与 workers.dev，也请让 MCP 客户端连接配置的规范域名。不要通过放开任意 Origin 来掩盖配置错误。
 
 单独修改 `PUBLIC_ORIGIN` 不会创建 DNS 或绑定自定义域名。带有 `custom_domain: true` 的 `routes` 条目会在 `wrangler deploy` 时完成绑定，由 Cloudflare 管理对应 DNS 和证书。重新部署时，必须替换或删除仓库中的 `quantdata.mcgeelee.com` 路由，使用自己控制的域名，并将 `PUBLIC_ORIGIN` 指向预期地址；不要将原域名条目部署到其他账号。SQLite 预算 Durable Object 为必需资源，无需 KV、D1 或 R2。Cache API 按 Cloudflare 边缘位置存放，重复请求不保证命中同一缓存。预算对象按供应商名选择，不依赖版本或密钥，因此重新部署和换密钥虽然会让诊断缓存失效，但保留预算计数。
 

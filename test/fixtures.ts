@@ -42,7 +42,7 @@ const testLoopback = Object.assign((options: { props?: unknown }) => {
 export function testEnv(overrides: Partial<RuntimeEnv> = {}): RuntimeEnv {
   const env: RuntimeEnv = {
     APP_VERSION: "3.1.0",
-    PUBLIC_ORIGIN: "https://quant-data.mcgeelee.workers.dev",
+    PUBLIC_ORIGIN: "https://quantdata.mcgeelee.workers.dev",
     TUSHARE_TOKEN: "",
     TIINGO_KEY: "",
     MARKET_RATE_LIMIT: { limit: () => Promise.resolve({ success: true }) },

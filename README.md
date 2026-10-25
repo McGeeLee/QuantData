@@ -4,7 +4,7 @@
 
 QuantData is a bilingual market-data dashboard, REST API, OpenAPI 3.1 service, and stateless MCP server running in a single Cloudflare Worker. It normalizes Yahoo Finance Chart, Tushare Pro, and Tiingo into ascending, provider-native daily OHLCV bars.
 
-The project and repository are named **QuantData**. Existing Worker, API/MCP, cache, and browser-storage identifiers retain `quant-data` for compatibility.
+The project and repository are named **QuantData**. Existing API/MCP, cache, and browser-storage identifiers retain `quant-data` for compatibility.
 
 > Historical daily data, not a real-time quote feed. Market data can be delayed, incomplete, or unavailable. Yahoo Chart is an unofficial endpoint and is not guaranteed to remain stable. This project does not provide investment advice.
 
@@ -141,11 +141,11 @@ npm run test:e2e
 
 ## Cloudflare deployment
 
-Review `wrangler.jsonc` before deployment: the Worker name is `quant-data`, runtime compatibility is `2026-08-08` with `nodejs_compat`, and `vars.PUBLIC_ORIGIN` must match your intended public address. Preserve SPA assets, both Rate Limiting bindings, version metadata, and the required `PROVIDER_BUDGET` binding to the SQLite `ProviderBudget` class. Its initial `provider-budget-v1` migration must succeed; no D1, KV, or R2 is required.
+Review `wrangler.jsonc` before deployment: the Worker name is `quantdata`, runtime compatibility is `2026-08-08` with `nodejs_compat`, and `vars.PUBLIC_ORIGIN` must match your intended public address. Preserve SPA assets, both Rate Limiting bindings, version metadata, and the required `PROVIDER_BUDGET` binding to the SQLite `ProviderBudget` class. Its initial `provider-budget-v1` migration must succeed; no D1, KV, or R2 is required.
 
 When you are ready to deploy, follow [the operator guide](./docs/DEPLOYMENT.md) to verify the account, optional secrets, generated types, build, and target origin. `npm run deploy` builds first and then deploys the Worker. The configured `routes` entry attaches `quantdata.mcgeelee.com` as a custom domain during deployment. For your own deployment, replace or remove that entry and set `PUBLIC_ORIGIN` to your own address; changing `PUBLIC_ORIGIN` alone does not attach a domain or change DNS.
 
-This README uses the canonical address `https://quantdata.mcgeelee.com`. The previous `https://quant-data.mcgeelee.workers.dev` address remains available for the dashboard and REST API; MCP clients must use `https://quantdata.mcgeelee.com/mcp`. Substitute your own origin for a fresh deployment. The running dashboard, docs, OpenAPI, and LLM discovery generate links for the current site; MCP allows the configured canonical origin. An enabled Workers Builds integration can deploy on a push to its configured branch—verify the actual Cloudflare settings rather than assuming `main` is linked.
+This README uses the canonical address `https://quantdata.mcgeelee.com`. The `quantdata` Worker address for the dashboard and REST API is `https://quantdata.mcgeelee.workers.dev`; MCP clients must use `https://quantdata.mcgeelee.com/mcp`. Substitute your own origin for a fresh deployment. The running dashboard, docs, OpenAPI, and LLM discovery generate links for the current site; MCP allows the configured canonical origin. An enabled Workers Builds integration can deploy on a push to its configured branch—verify the actual Cloudflare settings rather than assuming `main` is linked.
 
 ## Portfolio demonstration
 

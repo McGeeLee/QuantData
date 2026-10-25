@@ -23,7 +23,7 @@ type BuiltConfig = {
 type LocalResponse = { status: number; headers: IncomingHttpHeaders; body: string };
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
-const buildConfigPath = join(root, "dist/quant_data/wrangler.json");
+const buildConfigPath = join(root, "dist/quantdata/wrangler.json");
 const built = JSON.parse(await readFile(buildConfigPath, "utf8")) as BuiltConfig;
 assert.equal(typeof built.main, "string", "Build must contain a Worker entry point");
 assert.equal(typeof built.assets.directory, "string", "Build must contain a static assets directory");

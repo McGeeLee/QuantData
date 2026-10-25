@@ -16,7 +16,7 @@ function streamingCheckRequest(body: ReadableStream<Uint8Array>, headers?: Heade
 
 describe("Worker API contract", () => {
   it("returns health metadata without secret state", async () => {
-    const response = await createApiApp().fetch(new Request("https://quant-data.mcgeelee.workers.dev/healthz"), testEnv(), testExecutionContext);
+    const response = await createApiApp().fetch(new Request("https://quantdata.mcgeelee.workers.dev/healthz"), testEnv(), testExecutionContext);
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ status: "ok", version: "3.1.0", deployment: { id: "test-version" } });
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
@@ -25,7 +25,7 @@ describe("Worker API contract", () => {
   });
 
   it("publishes an API discovery document", async () => {
-    const response = await createApiApp().fetch(new Request("https://quant-data.mcgeelee.workers.dev/api/v1?lang=zh-CN"), testEnv(), testExecutionContext);
+    const response = await createApiApp().fetch(new Request("https://quantdata.mcgeelee.workers.dev/api/v1?lang=zh-CN"), testEnv(), testExecutionContext);
     const body = await response.json<{ apiVersion: string; endpoints: Array<{ operationId: string }>; disclaimer: string }>();
     expect(body.apiVersion).toBe("v1");
     expect(body.endpoints.map((endpoint) => endpoint.operationId)).toContain("getMarketData");
@@ -35,7 +35,7 @@ describe("Worker API contract", () => {
   });
 
   it("localizes source metadata while keeping stable field names", async () => {
-    const response = await createApiApp().fetch(new Request("https://quant-data.mcgeelee.workers.dev/api/v1/sources?lang=zh-CN"), testEnv(), testExecutionContext);
+    const response = await createApiApp().fetch(new Request("https://quantdata.mcgeelee.workers.dev/api/v1/sources?lang=zh-CN"), testEnv(), testExecutionContext);
     const body = await response.json<{ disclaimer: string; sources: unknown[] }>();
     expect(body.disclaimer).toContain("不构成投资建议");
     expect(body.sources).toHaveLength(3);
@@ -46,7 +46,7 @@ describe("Worker API contract", () => {
   it("returns a source-specific symbol error without calling upstream", async () => {
     const fetcher = vi.fn<typeof fetch>();
     vi.stubGlobal("fetch", fetcher);
-    const response = await createApiApp().fetch(new Request("https://quant-data.mcgeelee.workers.dev/api/v1/market-data?source=tushare&symbol=AAPL&lang=zh-CN"), testEnv(), testExecutionContext);
+    const response = await createApiApp().fetch(new Request("https://quantdata.mcgeelee.workers.dev/api/v1/market-data?source=tushare&symbol=AAPL&lang=zh-CN"), testEnv(), testExecutionContext);
     const body = await response.json<{ error: { code: string; details: { source: string } } }>();
     expect(response.status).toBe(400);
     expect(body.error).toMatchObject({ code: "INVALID_SYMBOL", details: { source: "tushare" } });
@@ -56,7 +56,7 @@ describe("Worker API contract", () => {
 
   it("propagates actionable upstream Retry-After metadata", async () => {
     vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockResolvedValue(new Response("limited", { status: 429, headers: { "retry-after": "30" } })));
-    const response = await createApiApp().fetch(new Request("https://quant-data.mcgeelee.workers.dev/api/v1/market-data?source=yahoo&symbol=AAPL"), testEnv(), testExecutionContext);
+    const response = await createApiApp().fetch(new Request("https://quantdata.mcgeelee.workers.dev/api/v1/market-data?source=yahoo&symbol=AAPL"), testEnv(), testExecutionContext);
     const body = await response.json<{ error: { code: string } }>();
     expect(response.status).toBe(503);
     expect(body.error.code).toBe("UPSTREAM_RATE_LIMITED");
@@ -65,7 +65,7 @@ describe("Worker API contract", () => {
   });
 
   it("returns a stable bilingual validation error", async () => {
-    const response = await createApiApp().fetch(new Request("https://quant-data.mcgeelee.workers.dev/api/v1/market-data?source=nope&symbol=AAPL&lang=zh-CN"), testEnv(), testExecutionContext);
+    const response = await createApiApp().fetch(new Request("https://quantdata.mcgeelee.workers.dev/api/v1/market-data?source=nope&symbol=AAPL&lang=zh-CN"), testEnv(), testExecutionContext);
     const body = await response.json<{ error: { code: string; message: string; requestId: string } }>();
     expect(response.status).toBe(400);
     expect(body.error.code).toBe("INVALID_REQUEST");
@@ -74,19 +74,19 @@ describe("Worker API contract", () => {
   });
 
   it("distinguishes unknown routes from unsupported methods", async () => {
-    const methodResponse = await createApiApp().fetch(new Request("https://quant-data.mcgeelee.workers.dev/api/v1/sources", { method: "POST" }), testEnv(), testExecutionContext);
+    const methodResponse = await createApiApp().fetch(new Request("https://quantdata.mcgeelee.workers.dev/api/v1/sources", { method: "POST" }), testEnv(), testExecutionContext);
     expect(methodResponse.status).toBe(405);
     expect(methodResponse.headers.get("allow")).toBe("GET, OPTIONS");
     expect(await methodResponse.json()).toMatchObject({ error: { code: "METHOD_NOT_ALLOWED" } });
 
-    const routeResponse = await createApiApp().fetch(new Request("https://quant-data.mcgeelee.workers.dev/api/v1/missing"), testEnv(), testExecutionContext);
+    const routeResponse = await createApiApp().fetch(new Request("https://quantdata.mcgeelee.workers.dev/api/v1/missing"), testEnv(), testExecutionContext);
     expect(routeResponse.status).toBe(404);
     expect(await routeResponse.json()).toMatchObject({ error: { code: "ROUTE_NOT_FOUND" } });
   });
 
   it("serves normalized market data with CORS and cache-safe errors", async () => {
     vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockResolvedValue(Response.json(yahooPayload())));
-    const response = await createApiApp().fetch(new Request("https://quant-data.mcgeelee.workers.dev/api/v1/market-data?source=yahoo&symbol=AAPL&start=2026-08-01&end=2026-08-10"), testEnv(), testExecutionContext);
+    const response = await createApiApp().fetch(new Request("https://quantdata.mcgeelee.workers.dev/api/v1/market-data?source=yahoo&symbol=AAPL&start=2026-08-01&end=2026-08-10"), testEnv(), testExecutionContext);
     const body = await response.json<{ meta: { count: number; adjustment: string }; bars: unknown[] }>();
     expect(response.status).toBe(200);
     expect(body.meta).toMatchObject({ count: 2, adjustment: "raw" });
@@ -95,7 +95,7 @@ describe("Worker API contract", () => {
   });
 
   it("publishes an OpenAPI 3.1 machine contract", async () => {
-    const response = await createApiApp().fetch(new Request("https://quant-data.mcgeelee.workers.dev/openapi.json"), testEnv(), testExecutionContext);
+    const response = await createApiApp().fetch(new Request("https://quantdata.mcgeelee.workers.dev/openapi.json"), testEnv(), testExecutionContext);
     const body = await response.json<{ openapi: string; paths: Record<string, { get?: { operationId?: string }; post?: { operationId?: string; requestBody?: unknown } }> }>();
     expect(body.openapi).toBe("3.1.0");
     expect(body.paths).toHaveProperty("/api/v1/market-data");

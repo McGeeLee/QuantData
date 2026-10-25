@@ -4,7 +4,7 @@
 
 QuantData 是运行在单个 Cloudflare Worker 上的双语行情仪表盘、REST API、OpenAPI 3.1 服务与无状态 MCP Server。它将 Yahoo Finance Chart、Tushare Pro 和 Tiingo 统一为按日期升序的供应商原生日线 OHLCV。
 
-项目与仓库统一使用 **QuantData**；已部署 Worker、API/MCP、缓存和浏览器存储标识仍保留 `quant-data`，以兼容现有部署与客户端。
+项目与仓库统一使用 **QuantData**；API/MCP、缓存和浏览器存储标识仍保留 `quant-data`，以兼容现有部署与客户端。
 
 > 这是历史日线数据，不是实时行情。行情可能延迟、不完整或暂时不可用。Yahoo Chart 是非官方接口，不保证长期稳定。本项目不提供投资建议。
 
@@ -141,11 +141,11 @@ npm run test:e2e
 
 ## Cloudflare 部署
 
-部署前审阅 `wrangler.jsonc`：Worker 名为 `quant-data`，兼容日期 `2026-08-08`，启用 `nodejs_compat`，`vars.PUBLIC_ORIGIN` 必须指向计划使用的公开地址。保留 SPA 资源、两个 Rate Limiting 绑定、版本元数据，以及指向 SQLite `ProviderBudget` 类的必需绑定 `PROVIDER_BUDGET`。首次 `provider-budget-v1` 迁移必须成功；无需 D1、KV 或 R2。
+部署前审阅 `wrangler.jsonc`：Worker 名为 `quantdata`，兼容日期 `2026-08-08`，启用 `nodejs_compat`，`vars.PUBLIC_ORIGIN` 必须指向计划使用的公开地址。保留 SPA 资源、两个 Rate Limiting 绑定、版本元数据，以及指向 SQLite `ProviderBudget` 类的必需绑定 `PROVIDER_BUDGET`。首次 `provider-budget-v1` 迁移必须成功；无需 D1、KV 或 R2。
 
 准备好后按[操作者指南](./docs/DEPLOYMENT.zh-CN.md)确认账号、可选 Secret、生成类型、构建和目标域名，再执行 `npm run deploy`；该命令会先构建再部署。当前 `routes` 条目会在部署时将 `quantdata.mcgeelee.com` 绑定为自定义域名。重新部署到自己的账号时，请替换或删除该条目，并将 `PUBLIC_ORIGIN` 改为自己的地址；单独修改 `PUBLIC_ORIGIN` 不会绑定域名或修改 DNS。
 
-README 示例使用规范地址 `https://quantdata.mcgeelee.com`。原 `https://quant-data.mcgeelee.workers.dev` 地址继续提供网页和 REST API；MCP 客户端请使用 `https://quantdata.mcgeelee.com/mcp`。新部署请替换为自己的地址。运行中的仪表盘、文档、OpenAPI 和 LLM 发现链接会使用当前站点地址，MCP 则允许配置的规范域名。只有已启用的 Workers Builds 关联才会在推送到指定分支时自动部署，不能仅凭仓库假定 `main` 已关联。
+README 示例使用规范地址 `https://quantdata.mcgeelee.com`。`quantdata` Worker 的网页和 REST API 地址为 `https://quantdata.mcgeelee.workers.dev`；MCP 客户端请使用 `https://quantdata.mcgeelee.com/mcp`。新部署请替换为自己的地址。运行中的仪表盘、文档、OpenAPI 和 LLM 发现链接会使用当前站点地址，MCP 则允许配置的规范域名。只有已启用的 Workers Builds 关联才会在推送到指定分支时自动部署，不能仅凭仓库假定 `main` 已关联。
 
 ## 作品集演示
 
