@@ -11,7 +11,7 @@ export function SiteHeader({ locale, onLocale, active }: SiteHeaderProps) {
   const t = translations[locale];
   return (
     <nav className={`topbar site-header${active === "docs" ? " docs-topbar" : ""}`} aria-label="Primary">
-      <a className="brand" href="/"><span className="brand-mark">Q</span><span>Quant Data</span></a>
+      <a className="brand" href="/"><span className="brand-mark">Q</span><span>QuantData</span></a>
       <div className="primary-nav">
         <a href="/" aria-current={active === "dashboard" ? "page" : undefined}>{t.dashboard}</a>
         <a href="/about" aria-current={active === "about" ? "page" : undefined}>{t.about}</a>

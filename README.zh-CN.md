@@ -1,8 +1,10 @@
-# Quant Data
+# QuantData
 
 [English](./README.md) · [行情面板](https://quantdata.mcgeelee.com/) · [项目介绍](https://quantdata.mcgeelee.com/about) · [API 指南](./docs/API.zh-CN.md) · [MCP 指南](./docs/MCP.zh-CN.md) · [部署指南](./docs/DEPLOYMENT.zh-CN.md) · [OpenAPI](https://quantdata.mcgeelee.com/openapi.json)
 
-Quant Data 是运行在单个 Cloudflare Worker 上的双语行情仪表盘、REST API、OpenAPI 3.1 服务与无状态 MCP Server。它将 Yahoo Finance Chart、Tushare Pro 和 Tiingo 统一为按日期升序的供应商原生日线 OHLCV。
+QuantData 是运行在单个 Cloudflare Worker 上的双语行情仪表盘、REST API、OpenAPI 3.1 服务与无状态 MCP Server。它将 Yahoo Finance Chart、Tushare Pro 和 Tiingo 统一为按日期升序的供应商原生日线 OHLCV。
+
+项目与仓库统一使用 **QuantData**；已部署 Worker、API/MCP、缓存和浏览器存储标识仍保留 `quant-data`，以兼容现有部署与客户端。
 
 > 这是历史日线数据，不是实时行情。行情可能延迟、不完整或暂时不可用。Yahoo Chart 是非官方接口，不保证长期稳定。本项目不提供投资建议。
 
@@ -75,7 +77,7 @@ https://quantdata.mcgeelee.com/mcp
 ```json
 {
   "mcpServers": {
-    "quant-data": {
+    "quantdata": {
       "type": "http",
       "url": "https://quantdata.mcgeelee.com/mcp"
     }

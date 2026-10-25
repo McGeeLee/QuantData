@@ -120,7 +120,7 @@ test("language and theme survive navigation, refresh, and browser back", async (
   await saveFixtureScreenshot(page, testInfo, "about-zh-dark-fixture.png", true);
   await page.locator(".primary-nav").getByRole("link", { name: "文档", exact: true }).click();
   await expect(page).toHaveURL(`${origin}/docs/zh-CN`);
-  await expect(page.getByRole("heading", { name: "Quant Data 文档", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "QuantData 文档", level: 1 })).toBeVisible();
   await expectPreferences();
   await page.locator(".primary-nav").getByRole("link", { name: "行情面板", exact: true }).click();
   await expect(page).toHaveURL(`${origin}/`);

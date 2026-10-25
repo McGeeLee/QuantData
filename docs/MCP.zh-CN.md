@@ -1,4 +1,4 @@
-# Quant Data MCP Server
+# QuantData MCP Server
 
 [English](./MCP.md) · [REST API 指南](./API.zh-CN.md)
 
@@ -11,7 +11,7 @@
 ```json
 {
   "mcpServers": {
-    "quant-data": {
+    "quantdata": {
       "type": "http",
       "url": "https://quantdata.mcgeelee.com/mcp"
     }

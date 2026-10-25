@@ -1,4 +1,4 @@
-# Quant Data MCP Server
+# QuantData MCP Server
 
 [中文](./MCP.zh-CN.md) · [REST API guide](./API.md)
 
@@ -11,7 +11,7 @@ The server is public, read-only, stateless, and uses Streamable HTTP. It support
 ```json
 {
   "mcpServers": {
-    "quant-data": {
+    "quantdata": {
       "type": "http",
       "url": "https://quantdata.mcgeelee.com/mcp"
     }

@@ -25,7 +25,7 @@ test("English and Chinese dashboard flow", async ({ page }) => {
 
 test("localized documentation route", async ({ page }) => {
   await page.goto("/docs/zh-CN");
-  await expect(page.getByRole("heading", { name: "Quant Data 文档" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "QuantData 文档" })).toBeVisible();
   await expect(page.getByText("get_market_data", { exact: true })).toBeVisible();
 });
 

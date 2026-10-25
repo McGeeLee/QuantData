@@ -46,7 +46,7 @@ describe("bilingual dashboard", () => {
     mockApi();
     window.history.replaceState({}, "", "/docs/zh-CN");
     const docs = render(<App />);
-    expect(screen.getByRole("heading", { level: 1, name: "Quant Data 文档" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "QuantData 文档" })).toBeTruthy();
     expect(localStorage.getItem("quant-data-locale")).toBe("zh-CN");
     expect(vi.mocked(fetch)).not.toHaveBeenCalled();
     docs.unmount();

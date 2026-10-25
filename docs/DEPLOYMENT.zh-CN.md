@@ -1,4 +1,4 @@
-# Quant Data 构建、重新部署与演示
+# QuantData 构建、重新部署与演示
 
 [English](./DEPLOYMENT.md) · [项目说明](../README.zh-CN.md)
 

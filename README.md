@@ -1,8 +1,10 @@
-# Quant Data
+# QuantData
 
 [中文说明](./README.zh-CN.md) · [Live dashboard](https://quantdata.mcgeelee.com/) · [Project introduction](https://quantdata.mcgeelee.com/about) · [API guide](./docs/API.md) · [MCP guide](./docs/MCP.md) · [Deployment guide](./docs/DEPLOYMENT.md) · [OpenAPI](https://quantdata.mcgeelee.com/openapi.json)
 
-Quant Data is a bilingual market-data dashboard, REST API, OpenAPI 3.1 service, and stateless MCP server running in a single Cloudflare Worker. It normalizes Yahoo Finance Chart, Tushare Pro, and Tiingo into ascending, provider-native daily OHLCV bars.
+QuantData is a bilingual market-data dashboard, REST API, OpenAPI 3.1 service, and stateless MCP server running in a single Cloudflare Worker. It normalizes Yahoo Finance Chart, Tushare Pro, and Tiingo into ascending, provider-native daily OHLCV bars.
+
+The project and repository are named **QuantData**. Existing Worker, API/MCP, cache, and browser-storage identifiers retain `quant-data` for compatibility.
 
 > Historical daily data, not a real-time quote feed. Market data can be delayed, incomplete, or unavailable. Yahoo Chart is an unofficial endpoint and is not guaranteed to remain stable. This project does not provide investment advice.
 
@@ -75,7 +77,7 @@ Example client configuration:
 ```json
 {
   "mcpServers": {
-    "quant-data": {
+    "quantdata": {
       "type": "http",
       "url": "https://quantdata.mcgeelee.com/mcp"
     }

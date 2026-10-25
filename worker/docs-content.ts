@@ -1,7 +1,7 @@
 export const docs = {
-  en: `# Quant Data API and MCP
+  en: `# QuantData API and MCP
 
-Quant Data exposes public, read-only provider-native daily OHLCV data from Yahoo Finance Chart, Tushare Pro, and Tiingo. These are historical daily observations, not a real-time price feed. A source marked configured has the required configuration; this is not an upstream connectivity or entitlement check.
+QuantData exposes public, read-only provider-native daily OHLCV data from Yahoo Finance Chart, Tushare Pro, and Tiingo. These are historical daily observations, not a real-time price feed. A source marked configured has the required configuration; this is not an upstream connectivity or entitlement check.
 
 adjustment: raw means no additional adjustment by this service, not guaranteed unadjusted prices. Yahoo OHLC may already account for stock splits; the adapter does not use adjclose.
 
@@ -45,9 +45,9 @@ Modern tools return concise text plus validated structuredContent. Legacy statel
 meta.latestBarDate is the latest returned trading date. meta.fetchedAt is when the provider response was fetched, not the time of a trade; cache hits retain that timestamp. meta.cache reports status (hit, miss, unavailable), ttlSeconds (3600), and ageSeconds. A recent fetch does not imply recent market data. Missing volume or previous-close metrics remain null, not zero. An empty result returns NOT_FOUND; the service never substitutes generated quotes.
 
 Market data can be delayed or incomplete. Yahoo Chart is unofficial and may change. Data provided by Tiingo must retain attribution. This service does not provide investment advice.`,
-  "zh-CN": `# Quant Data API 与 MCP
+  "zh-CN": `# QuantData API 与 MCP
 
-Quant Data 通过公开只读接口提供 Yahoo Finance Chart、Tushare Pro 和 Tiingo 的供应商原生日线 OHLCV 数据。这是历史日线数据，不是实时行情。“已配置”只表示所需配置存在，不表示已验证上游连通性或账号权限。
+QuantData 通过公开只读接口提供 Yahoo Finance Chart、Tushare Pro 和 Tiingo 的供应商原生日线 OHLCV 数据。这是历史日线数据，不是实时行情。“已配置”只表示所需配置存在，不表示已验证上游连通性或账号权限。
 
 adjustment: raw 表示本服务不做额外复权，不保证供应商价格未经调整。Yahoo OHLC 可能已按拆股调整，本适配器不使用 adjclose。
 
@@ -95,7 +95,7 @@ meta.latestBarDate 为返回的最新交易日期。meta.fetchedAt 为抓取供�
 
 export function llmsText(origin: string): string {
   const base = new URL(origin).origin;
-  return `# Quant Data
+  return `# QuantData
 
 > Public bilingual market-data REST API and stateless MCP server on Cloudflare Workers.
 

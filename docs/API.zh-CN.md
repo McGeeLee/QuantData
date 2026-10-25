@@ -1,4 +1,4 @@
-# Quant Data REST API
+# QuantData REST API
 
 [English](./API.md) · [OpenAPI 3.1](https://quantdata.mcgeelee.com/openapi.json) · [MCP 指南](./MCP.zh-CN.md)
 

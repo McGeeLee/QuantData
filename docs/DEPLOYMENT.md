@@ -1,4 +1,4 @@
-# Build, redeploy, and demonstrate Quant Data
+# Build, redeploy, and demonstrate QuantData
 
 [中文](./DEPLOYMENT.zh-CN.md) · [README](../README.md)
 

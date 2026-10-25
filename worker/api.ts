@@ -263,10 +263,10 @@ export function createApiApp(executionCtx?: ExecutionContext) {
   app.doc31("/openapi.json", (c) => ({
     openapi: "3.1.0",
     info: {
-      title: "Quant Data API",
+      title: "QuantData API",
       version: "3.1.0",
       description: "Public, read-only v1 API for normalized daily provider-native OHLCV data without further adjustment. The raw label is retained for compatibility; Yahoo prices may already reflect stock splits. Messages can be localized; field names and error codes remain stable. Data may be delayed or incomplete. Not investment advice.",
-      contact: { name: "Quant Data", url: "https://github.com/McGeeLee/Quant-Data" },
+      contact: { name: "QuantData", url: "https://github.com/McGeeLee/QuantData" },
     },
     servers: [{ url: new URL(c.req.url).origin, description: "Current deployment" }],
     externalDocs: { description: "English API and MCP documentation", url: `${new URL(c.req.url).origin}/docs/en` },

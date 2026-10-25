@@ -133,7 +133,7 @@ function createServer(
   });
 
   server.registerResource("quant-data-docs-en", "quant-data://docs/en", {
-    title: "Quant Data documentation (English)",
+    title: "QuantData documentation (English)",
     description: "REST API and MCP usage, constraints, warnings, and examples.",
     mimeType: "text/markdown",
     size: new TextEncoder().encode(docs.en).byteLength,
@@ -142,7 +142,7 @@ function createServer(
   }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: docs.en }] }));
 
   server.registerResource("quant-data-docs-zh-cn", "quant-data://docs/zh-CN", {
-    title: "Quant Data 文档（中文）",
+    title: "QuantData 文档（中文）",
     description: "REST API 与 MCP 用法、限制、风险和示例。",
     mimeType: "text/markdown",
     size: new TextEncoder().encode(docs["zh-CN"]).byteLength,
@@ -151,7 +151,7 @@ function createServer(
   }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: docs["zh-CN"] }] }));
 
   server.registerResource("quant-data-openapi", "quant-data://api/openapi", {
-    title: "Quant Data OpenAPI 3.1 contract",
+    title: "QuantData OpenAPI 3.1 contract",
     description: "Machine-readable REST API contract with stable operation IDs, parameters, response schemas, and errors.",
     mimeType: "application/json",
     annotations: { audience: ["assistant"], priority: 0.9, lastModified: env.VERSION_METADATA.timestamp },
